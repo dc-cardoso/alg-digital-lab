@@ -14,6 +14,11 @@
             <h2 class="text-2xl font-black text-slate-800 text-center mb-2">ALG Digital Lab</h2>
             <p class="text-sm text-slate-500 text-center mb-6">Acesse sua conta para continuar</p>
             
+            <!-- Mensagem de Feedback -->
+            <template x-if="message">
+                <div :class="messageType === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'" class="p-3 mb-4 rounded-lg text-sm border font-medium text-center" x-text="message"></div>
+            </template>
+
             <form @submit.prevent="login" class="space-y-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Usuário</label>
@@ -41,17 +46,25 @@
 
         <main class="flex-1 p-8 max-w-6xl mx-auto w-full">
             
+            <!-- ALERTA GLOBAL DE FEEDBACK NA TELA -->
+            <template x-if="message">
+                <div :class="messageType === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'" class="p-4 mb-6 rounded-xl text-sm border font-medium flex justify-between items-center">
+                    <span x-text="message"></span>
+                    <button @click="message = ''" class="font-bold text-lg">&times;</button>
+                </div>
+            </template>
+
             <!-- PAINEL MASTER (ADMINISTRADOR GERAL) -->
             <div x-show="role === 'master'">
                 <h2 class="text-2xl font-bold text-slate-800 mb-6">Gestão de Laboratórios</h2>
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
                     <h3 class="text-lg font-bold text-slate-700 mb-4">Cadastrar Novo Laboratório</h3>
                     <form @submit.prevent="createLab" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input type="text" x-model="newLab.name" placeholder="Nome do Laboratório" required class="border p-2.5 rounded-lg text-sm">
-                        <input type="text" x-model="newLab.admin_name" placeholder="Nome do Responsável" required class="border p-2.5 rounded-lg text-sm">
-                        <input type="text" x-model="newLab.admin_username" placeholder="Usuário de Acesso" required class="border p-2.5 rounded-lg text-sm">
-                        <input type="password" x-model="newLab.admin_password" placeholder="Senha de Acesso" required class="border p-2.5 rounded-lg text-sm">
-                        <button type="submit" class="md:col-span-2 bg-emerald-600 text-white font-semibold py-2.5 rounded-lg hover:bg-emerald-700">Criar Laboratório</button>
+                        <input type="text" x-model="newLab.name" placeholder="Nome do Laboratório" required class="border p-2.5 rounded-lg text-sm focus:outline-none focus:border-blue-500">
+                        <input type="text" x-model="newLab.admin_name" placeholder="Nome do Responsável" required class="border p-2.5 rounded-lg text-sm focus:outline-none focus:border-blue-500">
+                        <input type="text" x-model="newLab.admin_username" placeholder="Usuário de Acesso" required class="border p-2.5 rounded-lg text-sm focus:outline-none focus:border-blue-500">
+                        <input type="password" x-model="newLab.admin_password" placeholder="Senha de Acesso" required class="border p-2.5 rounded-lg text-sm focus:outline-none focus:border-blue-500">
+                        <button type="submit" class="md:col-span-2 bg-emerald-600 text-white font-semibold py-2.5 rounded-lg hover:bg-emerald-700 transition">Criar Laboratório</button>
                     </form>
                 </div>
             </div>
@@ -65,10 +78,10 @@
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
                     <h3 class="text-lg font-bold text-slate-700 mb-4">Cadastrar Novo Cliente (Dentista)</h3>
                     <form @submit.prevent="createDentist" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <input type="text" x-model="newDentist.name" placeholder="Nome do Doutor(a)" required class="border p-2.5 rounded-lg text-sm">
-                        <input type="text" x-model="newDentist.username" placeholder="Login / Usuário" required class="border p-2.5 rounded-lg text-sm">
-                        <input type="password" x-model="newDentist.password" placeholder="Senha" required class="border p-2.5 rounded-lg text-sm">
-                        <button type="submit" class="md:col-span-3 bg-blue-600 text-white font-semibold py-2.5 rounded-lg hover:bg-blue-700">Salvar Cliente</button>
+                        <input type="text" x-model="newDentist.name" placeholder="Nome do Doutor(a)" required class="border p-2.5 rounded-lg text-sm focus:outline-none focus:border-blue-500">
+                        <input type="text" x-model="newDentist.username" placeholder="Login / Usuário" required class="border p-2.5 rounded-lg text-sm focus:outline-none focus:border-blue-500">
+                        <input type="password" x-model="newDentist.password" placeholder="Senha" required class="border p-2.5 rounded-lg text-sm focus:outline-none focus:border-blue-500">
+                        <button type="submit" class="md:col-span-3 bg-blue-600 text-white font-semibold py-2.5 rounded-lg hover:bg-blue-700 transition">Salvar Cliente</button>
                     </form>
                 </div>
 
@@ -91,9 +104,9 @@
                                     <td class="p-4 font-semibold text-blue-600" x-text="os.os_number"></td>
                                     <td class="p-4 text-slate-800" x-text="os.patient_name"></td>
                                     <td class="p-4 text-slate-600" x-text="os.work_type + ' (' + os.color + ')'"></td>
-                                    <td class="p-4 text-slate-600" x-text="os.is_digital ? 'Digital' : 'Físico (Retirar)'"></td>
+                                    <td class="p-4 text-slate-600" x-text="os.is_digital ? 'Digital' : 'Físico'"></td>
                                     <td class="p-4"><span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-700" x-text="os.status"></span></td>
-                                    <td class="p-4 text-right space-x-2">
+                                    <td class="p-4 text-right">
                                         <button @click="cancelOS(os.id)" class="text-red-600 hover:underline text-xs font-bold">Cancelar</button>
                                     </td>
                                 </tr>
@@ -113,15 +126,15 @@
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
                     <h3 class="text-lg font-bold text-slate-700 mb-4">Nova Ordem de Serviço</h3>
                     <form @submit.prevent="createOS" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input type="text" x-model="newOS.patient_name" placeholder="Nome do Paciente" required class="border p-2.5 rounded-lg text-sm">
-                        <input type="text" x-model="newOS.work_type" placeholder="Tipo de Trabalho (Coroa, Faceta, etc.)" required class="border p-2.5 rounded-lg text-sm">
-                        <input type="text" x-model="newOS.color" placeholder="Cor (A2, A3, B1, etc.)" class="border p-2.5 rounded-lg text-sm">
-                        <select x-model="newOS.is_digital" class="border p-2.5 rounded-lg text-sm bg-white">
-                            <option :value="true">Trabalho Digital (Enviar Arquivo 3D)</option>
+                        <input type="text" x-model="newOS.patient_name" placeholder="Nome do Paciente" required class="border p-2.5 rounded-lg text-sm focus:outline-none focus:border-blue-500">
+                        <input type="text" x-model="newOS.work_type" placeholder="Tipo de Trabalho (Coroa, Faceta, etc.)" required class="border p-2.5 rounded-lg text-sm focus:outline-none focus:border-blue-500">
+                        <input type="text" x-model="newOS.color" placeholder="Cor (A2, A3, B1, etc.)" class="border p-2.5 rounded-lg text-sm focus:outline-none focus:border-blue-500">
+                        <select x-model="newOS.is_digital" class="border p-2.5 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500">
+                            <option :value="true">Trabalho Digital</option>
                             <option :value="false">Trabalho Físico (Requer Retirada)</option>
                         </select>
-                        <textarea x-model="newOS.notes" placeholder="Observações adicionais..." class="md:col-span-2 border p-2.5 rounded-lg text-sm"></textarea>
-                        <button type="submit" class="md:col-span-2 bg-blue-600 text-white font-semibold py-2.5 rounded-lg hover:bg-blue-700">Gerar Ordem de Serviço</button>
+                        <textarea x-model="newOS.notes" placeholder="Observações adicionais..." class="md:col-span-2 border p-2.5 rounded-lg text-sm focus:outline-none focus:border-blue-500"></textarea>
+                        <button type="submit" class="md:col-span-2 bg-blue-600 text-white font-semibold py-2.5 rounded-lg hover:bg-blue-700 transition">Gerar Ordem de Serviço</button>
                     </form>
                 </div>
 
@@ -163,6 +176,8 @@
                 name: localStorage.getItem('user_name') || '',
                 username: '',
                 password: '',
+                message: '',
+                messageType: 'success',
                 newLab: { name: '', admin_name: '', admin_username: '', admin_password: '' },
                 newDentist: { name: '', username: '', password: '' },
                 newOS: { patient_name: '', work_type: '', color: '', is_digital: true, notes: '' },
@@ -172,23 +187,34 @@
                     if (this.token) { this.loadData(); }
                 },
 
+                showMsg(text, type = 'success') {
+                    this.message = text;
+                    this.messageType = type;
+                    setTimeout(() => { if(this.message === text) this.message = ''; }, 5000);
+                },
+
                 async login() {
-                    const res = await fetch('/api/login', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({username: this.username, password: this.password})
-                    });
-                    const data = await res.json();
-                    if(res.ok) {
-                        this.token = data.token;
-                        this.role = data.role;
-                        this.name = data.name;
-                        localStorage.setItem('jwt_token', data.token);
-                        localStorage.setItem('user_role', data.role);
-                        localStorage.setItem('user_name', data.name);
-                        this.loadData();
-                    } else {
-                        alert(data.error || 'Erro no login');
+                    try {
+                        const res = await fetch('/api/login', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({username: this.username, password: this.password})
+                        });
+                        const data = await res.json();
+                        if(res.ok) {
+                            this.token = data.token;
+                            this.role = data.role;
+                            this.name = data.name;
+                            localStorage.setItem('jwt_token', data.token);
+                            localStorage.setItem('user_role', data.role);
+                            localStorage.setItem('user_name', data.name);
+                            this.showMsg('Login realizado com sucesso!', 'success');
+                            this.loadData();
+                        } else {
+                            this.showMsg(data.error || 'Credenciais inválidas', 'error');
+                        }
+                    } catch (e) {
+                        this.showMsg('Erro de conexão com o servidor', 'error');
                     }
                 },
 
@@ -197,9 +223,11 @@
                     this.token = null;
                     this.role = '';
                     this.name = '';
+                    this.showMsg('Sessão encerrada.', 'success');
                 },
 
                 async loadData() {
+                    if (this.role === 'master') return;
                     const res = await fetch('/api/os', {
                         headers: {'Authorization': `Bearer ${this.token}`}
                     });
@@ -209,50 +237,79 @@
                 },
 
                 async createLab() {
-                    const res = await fetch('/api/labs', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}`},
-                        body: JSON.stringify(this.newLab)
-                    });
-                    if(res.ok) {
-                        alert('Laboratório criado com sucesso!');
-                        this.newLab = { name: '', admin_name: '', admin_username: '', admin_password: '' };
+                    try {
+                        const res = await fetch('/api/labs', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}`},
+                            body: JSON.stringify(this.newLab)
+                        });
+                        const data = await res.json();
+                        if(res.ok) {
+                            this.showMsg(data.message || 'Laboratório criado com sucesso!', 'success');
+                            this.newLab = { name: '', admin_name: '', admin_username: '', admin_password: '' };
+                        } else {
+                            this.showMsg(data.error || 'Erro ao criar laboratório', 'error');
+                        }
+                    } catch(e) {
+                        this.showMsg('Erro de conexão ao cadastrar laboratório', 'error');
                     }
                 },
 
                 async createDentist() {
-                    const res = await fetch('/api/dentists', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}`},
-                        body: JSON.stringify(this.newDentist)
-                    });
-                    if(res.ok) {
-                        alert('Dentista/Cliente cadastrado com sucesso!');
-                        this.newDentist = { name: '', username: '', password: '' };
+                    try {
+                        const res = await fetch('/api/dentists', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}`},
+                            body: JSON.stringify(this.newDentist)
+                        });
+                        const data = await res.json();
+                        if(res.ok) {
+                            this.showMsg(data.message || 'Dentista cadastrado com sucesso!', 'success');
+                            this.newDentist = { name: '', username: '', password: '' };
+                        } else {
+                            this.showMsg(data.error || 'Erro ao cadastrar dentista', 'error');
+                        }
+                    } catch(e) {
+                        this.showMsg('Erro de conexão ao cadastrar dentista', 'error');
                     }
                 },
 
                 async createOS() {
-                    const res = await fetch('/api/os', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}`},
-                        body: JSON.stringify(this.newOS)
-                    });
-                    if(res.ok) {
-                        alert('Ordem de serviço gerada com sucesso!');
-                        this.newOS = { patient_name: '', work_type: '', color: '', is_digital: true, notes: '' };
-                        this.loadData();
+                    try {
+                        const res = await fetch('/api/os', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}`},
+                            body: JSON.stringify(this.newOS)
+                        });
+                        const data = await res.json();
+                        if(res.ok) {
+                            this.showMsg(data.message || 'Ordem de serviço gerada!', 'success');
+                            this.newOS = { patient_name: '', work_type: '', color: '', is_digital: true, notes: '' };
+                            this.loadData();
+                        } else {
+                            this.showMsg(data.error || 'Erro ao gerar OS', 'error');
+                        }
+                    } catch(e) {
+                        this.showMsg('Erro de conexão ao gerar OS', 'error');
                     }
                 },
 
                 async cancelOS(id) {
                     if(!confirm('Deseja realmente cancelar esta OS?')) return;
-                    const res = await fetch(`/api/os/${id}/cancel`, {
-                        method: 'PUT',
-                        headers: {'Authorization': `Bearer ${this.token}`}
-                    });
-                    if(res.ok) {
-                        this.loadData();
+                    try {
+                        const res = await fetch(`/api/os/${id}/cancel`, {
+                            method: 'PUT',
+                            headers: {'Authorization': `Bearer ${this.token}`}
+                        });
+                        if(res.ok) {
+                            this.showMsg('OS cancelada com sucesso.', 'success');
+                            this.loadData();
+                        } else {
+                            const data = await res.json();
+                            this.showMsg(data.error || 'Erro ao cancelar OS', 'error');
+                        }
+                    } catch(e) {
+                        this.showMsg('Erro de conexão ao cancelar OS', 'error');
                     }
                 }
             }
