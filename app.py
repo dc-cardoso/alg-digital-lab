@@ -2,9 +2,9 @@ import os
 import boto3
 from botocore.config import Config
 from datetime import datetime
-from flask import Flask, jsonify, request, send_file
+from flask import Flask, jsonify, request, send_file, render_template
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 from io import BytesIO
 from fpdf import FPDF
 from models import db, User, Lab, ServiceOrder, OSMessage, OSAttachment
@@ -30,7 +30,81 @@ R2_BUCKET_NAME = os.getenv('R2_BUCKET_NAME', 'alg-digital-lab')
 
 with app.app_context():
     db.create_all()
+    # Criar Master Admin padrão se não existir
+    if not User.query.filter_by(username='master').first():
+        master = User(username='master', name='Administrador Master', password_hash=generate_password_hash('master123'), role='master')
+        db.session.add(master)
+        db.session.commit()
 
+# --- ROTA DE PÁGINA INICIAL (FRONTEND) ---
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+# --- AUTENTICAÇÃO ---
+@app.route('/api/login', methods=['POST'])
+def login():
+    data = request.json
+    user = User.query.filter_by(username=data.get('username')).first()
+    if user and check_password_hash(user.password_hash, data.get('password')):
+        token = create_access_token(identity={'id': user.id, 'lab_id': user.lab_id, 'role': user.role})
+        return jsonify({'token': token, 'role': user.role, 'name': user.name})
+    return jsonify({'error': 'Credenciais inválidas'}), 401
+
+# --- GESTÃO DE LABORATÓRIOS (Apenas Master) ---
+@app.route('/api/labs', methods=['POST', 'GET'])
+@jwt_required()
+def manage_labs():
+    current_user = get_jwt_identity()
+    if current_user['role'] != 'master':
+        return jsonify({'error': 'Acesso negado'}), 403
+
+    if request.method == 'POST':
+        data = request.json
+        lab = Lab(name=data['name'])
+        db.session.add(lab)
+        db.session.commit()
+
+        # Criar usuário admin para este laboratório
+        admin_user = User(
+            lab_id=lab.id,
+            username=data['admin_username'],
+            name=data['admin_name'],
+            password_hash=generate_password_hash(data['admin_password']),
+            role='lab_admin'
+        )
+        db.session.add(admin_user)
+        db.session.commit()
+        return jsonify({'message': 'Laboratório e Admin criados com sucesso!'}), 201
+
+    labs = Lab.query.all()
+    return jsonify([{'id': l.id, 'name': l.name} for l in labs])
+
+# --- GESTÃO DE CLIENTES / DENTISTAS (Apenas Lab Admin) ---
+@app.route('/api/dentists', methods=['POST', 'GET'])
+@jwt_required()
+def manage_dentists():
+    current_user = get_jwt_identity()
+    if current_user['role'] != 'lab_admin':
+        return jsonify({'error': 'Acesso negado'}), 403
+
+    if request.method == 'POST':
+        data = request.json
+        dentist = User(
+            lab_id=current_user['lab_id'],
+            username=data['username'],
+            name=data['name'],
+            password_hash=generate_password_hash(data['password']),
+            role='dentist'
+        )
+        db.session.add(dentist)
+        db.session.commit()
+        return jsonify({'message': 'Cliente/Dentista cadastrado com sucesso!'}), 201
+
+    dentists = User.query.filter_by(lab_id=current_user['lab_id'], role='dentist').all()
+    return jsonify([{'id': d.id, 'name': d.name, 'username': d.username} for d in dentists])
+
+# --- ORDEM DE SERVIÇO (OS) ---
 def generate_os_number(lab_id):
     today_str = datetime.now().strftime("%Y%m%d")
     count = ServiceOrder.query.filter(
@@ -39,89 +113,51 @@ def generate_os_number(lab_id):
     ).count() + 1
     return f"OS-{lab_id}-{today_str}-{count:03d}"
 
-# --- GESTÃO DE ARQUIVOS (UPLOAD & DOWNLOAD DIRETO COM S3/R2) ---
-
-@app.route('/api/os/<int:os_id>/attachments/presigned-upload', methods=['POST'])
+@app.route('/api/os', methods=['POST', 'GET'])
 @jwt_required()
-def generate_presigned_upload(os_id):
-    '''
-    Passo 1: O Frontend pede permissão para enviar um arquivo.
-    Retornamos uma URL segura onde o próprio frontend/app fará o upload (ZERO custo na nossa API).
-    '''
+def handle_os():
     current_user = get_jwt_identity()
-    os_obj = ServiceOrder.query.filter_by(id=os_id, lab_id=current_user['lab_id']).first_or_404()
     
-    data = request.json
-    file_name = data.get('file_name', 'arquivo.stl')
-    content_type = data.get('content_type', 'application/octet-stream')
-    
-    # Organização no Bucket: lab_<id>/os_<id>/timestamp_filename
-    file_key = f"lab_{current_user['lab_id']}/os_{os_id}/{int(datetime.utcnow().timestamp())}_{file_name}"
-    
-    try:
-        presigned_url = s3_client.generate_presigned_url(
-            'put_object',
-            Params={'Bucket': R2_BUCKET_NAME, 'Key': file_key, 'ContentType': content_type},
-            ExpiresIn=900 # O link de upload vale por 15 minutos
+    if request.method == 'POST':
+        if current_user['role'] != 'dentist':
+            return jsonify({'error': 'Apenas clientes/dentistas podem gerar OS'}), 403
+        data = request.json
+        new_os = ServiceOrder(
+            os_number=generate_os_number(current_user['lab_id']),
+            lab_id=current_user['lab_id'],
+            dentist_id=current_user['id'],
+            patient_name=data['patient_name'],
+            work_type=data['work_type'],
+            color=data.get('color', ''),
+            is_digital=data.get('is_digital', True),
+            notes=data.get('notes', '')
         )
-        return jsonify({'upload_url': presigned_url, 'file_key': file_key})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        db.session.add(new_os)
+        db.session.commit()
+        return jsonify({'message': 'OS gerada com sucesso!', 'os_id': new_os.id, 'os_number': new_os.os_number}), 201
 
-@app.route('/api/os/<int:os_id>/attachments', methods=['POST'])
+    # GET: Listar OS conforme o perfil
+    if current_user['role'] == 'dentist':
+        orders = ServiceOrder.query.filter_by(dentist_id=current_user['id']).all()
+    else:
+        orders = ServiceOrder.query.filter_by(lab_id=current_user['lab_id']).all()
+
+    return jsonify([{
+        'id': o.id, 'os_number': o.os_number, 'patient_name': o.patient_name,
+        'work_type': o.work_type, 'color': o.color, 'is_digital': o.is_digital,
+        'status': o.status, 'created_at': o.created_at.strftime('%d/%m/%Y %H:%M')
+    } for o in orders])
+
+@app.route('/api/os/<int:os_id>/cancel', methods=['PUT'])
 @jwt_required()
-def confirm_upload(os_id):
-    '''
-    Passo 2: Após o Flutter/Web enviar o arquivo pro S3/R2 com sucesso,
-    ele chama essa rota para salvar no nosso banco de dados.
-    '''
+def cancel_os(os_id):
     current_user = get_jwt_identity()
+    if current_user['role'] != 'lab_admin':
+        return jsonify({'error': 'Apenas o laboratório pode cancelar uma OS.'}), 403
     os_obj = ServiceOrder.query.filter_by(id=os_id, lab_id=current_user['lab_id']).first_or_404()
-    
-    data = request.json
-    attachment = OSAttachment(
-        order_id=os_obj.id,
-        file_name=data['file_name'],
-        file_key=data['file_key'],
-        file_type=data.get('file_type', 'unknown')
-    )
-    db.session.add(attachment)
+    os_obj.status = 'CANCELLED'
     db.session.commit()
-    return jsonify({'message': 'Anexo registrado com sucesso.'}), 201
-
-@app.route('/api/os/attachment/<int:attachment_id>/download', methods=['GET'])
-@jwt_required()
-def download_attachment(attachment_id):
-    '''
-    Gera link de download direto do S3/R2 se o arquivo tiver menos de 30 dias.
-    '''
-    current_user = get_jwt_identity()
-    attachment = OSAttachment.query.get_or_404(attachment_id)
-    os_obj = ServiceOrder.query.get_or_404(attachment.order_id)
-    
-    if os_obj.lab_id != current_user['lab_id']:
-        return jsonify({'error': 'Acesso negado.'}), 403
-
-    # TRAVA DE SEGURANÇA: 30 DIAS (Regra de Negócio)
-    dias_passados = (datetime.utcnow() - attachment.uploaded_at).days
-    if dias_passados > 30:
-        return jsonify({
-            'error': 'FILE_EXPIRED',
-            'message': 'Este arquivo expirou (limite de 30 dias). Solicite o reenvio do trabalho ao doutor.'
-        }), 410 # HTTP 410 Gone
-
-    try:
-        presigned_url = s3_client.generate_presigned_url(
-            'get_object',
-            Params={'Bucket': R2_BUCKET_NAME, 'Key': attachment.file_key},
-            ExpiresIn=3600 # Link de download expira em 1 hora
-        )
-        return jsonify({'download_url': presigned_url})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-# --- RESTO DAS ROTAS (OS, MENSAGENS, PDF) ---
-# ... (Mantidas conforme combinado)
+    return jsonify({'message': 'OS cancelada com sucesso.'})
 
 if __name__ == '__main__':
     app.run(debug=True)
