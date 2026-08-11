@@ -5,11 +5,15 @@
     <title>ALG Digital Lab - Plataforma B2B</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        /* Oculta as telas até que o Alpine valide a segurança, impedindo "flicker" visual */
+        [x-cloak] { display: none !important; }
+    </style>
 </head>
 <body class="bg-slate-50 min-h-screen font-sans" x-data="app()">
 
     <!-- TELA DE LOGIN -->
-    <div x-show="!token" class="flex items-center justify-center min-h-screen">
+    <div x-cloak x-show="!token" class="flex items-center justify-center min-h-screen">
         <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md border border-slate-100">
             <h2 class="text-2xl font-black text-slate-800 text-center mb-2">ALG Digital Lab</h2>
             <p class="text-sm text-slate-500 text-center mb-6">Acesse sua conta para continuar</p>
@@ -34,7 +38,7 @@
     </div>
 
     <!-- PAINEL DA APLICAÇÃO -->
-    <div x-show="token" class="flex flex-col min-h-screen">
+    <div x-cloak x-show="token" class="flex flex-col min-h-screen">
         <!-- Barra Superior -->
         <header class="bg-white border-b border-slate-200 px-8 py-4 flex justify-between items-center shadow-sm">
             <h1 class="text-xl font-black text-slate-800">ALG Digital Lab <span class="text-xs bg-blue-100 text-blue-700 py-1 px-2 rounded-full uppercase ml-2" x-text="role"></span></h1>
@@ -168,7 +172,7 @@
         </main>
     </div>
 
-<script>
+    <script>
         function app() {
             return {
                 token: localStorage.getItem('jwt_token'),
@@ -184,13 +188,15 @@
                 orders: [],
 
                 init() {
-                    // 1. Filtro de segurança: limpa sujeiras de cache onde o JS gravou texto "null"
-                    if (!this.token || this.token === 'null' || this.token === 'undefined' || this.token === '') {
+                    // Validação estrutural de JWT: um token real SEMPRE tem 3 partes separadas por ponto.
+                    // Qualquer lixo de cache que não obedeça a essa regra será expurgado e barrado visualmente.
+                    const isValidToken = this.token && typeof this.token === 'string' && this.token.split('.').length === 3;
+                    
+                    if (!isValidToken) {
                         this.forceLogout(false);
                         return;
                     }
                     
-                    // 2. Tenta validar o token silenciosamente com o servidor no momento em que a página abre
                     this.loadData();
                 },
 
@@ -200,12 +206,13 @@
                     setTimeout(() => { if(this.message === text) this.message = ''; }, 5000);
                 },
 
-                // Função centralizada para derrubar a sessão em caso de erro 401 ou 422
                 forceLogout(showAlert = true) {
-                    localStorage.clear();
+                    localStorage.removeItem('jwt_token');
+                    localStorage.removeItem('user_role');
+                    localStorage.removeItem('user_name');
                     this.token = null;
-                    this.role = '';
-                    this.name = '';
+                    this.role = null;
+                    this.name = null;
                     if (showAlert) {
                         this.showMsg('Sessão inválida ou expirada. Faça login novamente.', 'error');
                     }
@@ -237,23 +244,18 @@
                 },
 
                 logout() {
-                    localStorage.clear();
-                    this.token = null;
-                    this.role = '';
-                    this.name = '';
+                    this.forceLogout(false);
                     this.showMsg('Sessão encerrada.', 'success');
                 },
 
                 async loadData() {
                     try {
-                        // Faz uma pequena requisição para validar o token com base no papel do usuário
                         const endpoint = this.role === 'master' ? '/api/labs' : '/api/os';
                         
                         const res = await fetch(endpoint, {
                             headers: { 'Authorization': `Bearer ${this.token}` }
                         });
                         
-                        // Se o Flask barrar a tentativa (token corrompido, vazio ou falso), derruba pro login
                         if (res.status === 401 || res.status === 422) {
                             this.forceLogout(true);
                             return;
@@ -278,7 +280,6 @@
                             body: JSON.stringify(this.newLab)
                         });
                         
-                        // Captura o 422 ou 401
                         if (res.status === 401 || res.status === 422) {
                             this.forceLogout(true);
                             return;
