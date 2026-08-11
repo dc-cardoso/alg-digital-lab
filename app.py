@@ -44,7 +44,7 @@ def index():
 # --- AUTENTICAÇÃO ---
 @app.route('/api/login', methods=['POST'])
 def login():
-    data = request.json
+    data = request.json or request.form
     user = User.query.filter_by(username=data.get('username')).first()
     if user and check_password_hash(user.password_hash, data.get('password')):
         token = create_access_token(identity={'id': user.id, 'lab_id': user.lab_id, 'role': user.role})
@@ -60,17 +60,27 @@ def manage_labs():
         return jsonify({'error': 'Acesso negado'}), 403
 
     if request.method == 'POST':
-        data = request.json
-        lab = Lab(name=data['name'])
+        data = request.get_json(silent=True) or request.form
+        name = data.get('name')
+        admin_name = data.get('admin_name')
+        admin_username = data.get('admin_username')
+        admin_password = data.get('admin_password')
+
+        if not all([name, admin_name, admin_username, admin_password]):
+            return jsonify({'error': 'Todos os campos são obrigatórios'}), 400
+
+        if User.query.filter_by(username=admin_username).first():
+            return jsonify({'error': 'Este nome de usuário já está em uso'}), 400
+
+        lab = Lab(name=name)
         db.session.add(lab)
         db.session.commit()
 
-        # Criar usuário admin para este laboratório
         admin_user = User(
             lab_id=lab.id,
-            username=data['admin_username'],
-            name=data['admin_name'],
-            password_hash=generate_password_hash(data['admin_password']),
+            username=admin_username,
+            name=admin_name,
+            password_hash=generate_password_hash(admin_password),
             role='lab_admin'
         )
         db.session.add(admin_user)
@@ -89,12 +99,22 @@ def manage_dentists():
         return jsonify({'error': 'Acesso negado'}), 403
 
     if request.method == 'POST':
-        data = request.json
+        data = request.get_json(silent=True) or request.form
+        username = data.get('username')
+        name = data.get('name')
+        password = data.get('password')
+
+        if not all([username, name, password]):
+            return jsonify({'error': 'Todos os campos são obrigatórios'}), 400
+
+        if User.query.filter_by(username=username).first():
+            return jsonify({'error': 'Este nome de usuário já está em uso'}), 400
+
         dentist = User(
             lab_id=current_user['lab_id'],
-            username=data['username'],
-            name=data['name'],
-            password_hash=generate_password_hash(data['password']),
+            username=username,
+            name=name,
+            password_hash=generate_password_hash(password),
             role='dentist'
         )
         db.session.add(dentist)
@@ -121,15 +141,21 @@ def handle_os():
     if request.method == 'POST':
         if current_user['role'] != 'dentist':
             return jsonify({'error': 'Apenas clientes/dentistas podem gerar OS'}), 403
-        data = request.json
+        data = request.get_json(silent=True) or request.form
+        
+        patient_name = data.get('patient_name')
+        work_type = data.get('work_type')
+        if not all([patient_name, work_type]):
+            return jsonify({'error': 'Nome do paciente e tipo de trabalho são obrigatórios'}), 400
+
         new_os = ServiceOrder(
             os_number=generate_os_number(current_user['lab_id']),
             lab_id=current_user['lab_id'],
             dentist_id=current_user['id'],
-            patient_name=data['patient_name'],
-            work_type=data['work_type'],
+            patient_name=patient_name,
+            work_type=work_type,
             color=data.get('color', ''),
-            is_digital=data.get('is_digital', True),
+            is_digital=str(data.get('is_digital', True)).lower() in ['true', '1', 'yes'],
             notes=data.get('notes', '')
         )
         db.session.add(new_os)
