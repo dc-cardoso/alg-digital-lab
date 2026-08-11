@@ -197,8 +197,8 @@
                     try {
                         const res = await fetch('/api/login', {
                             method: 'POST',
-                            headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({username: this.username, password: this.password})
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ username: this.username, password: this.password })
                         });
                         const data = await res.json();
                         if(res.ok) {
@@ -228,11 +228,15 @@
 
                 async loadData() {
                     if (this.role === 'master') return;
-                    const res = await fetch('/api/os', {
-                        headers: {'Authorization': `Bearer ${this.token}`}
-                    });
-                    if (res.ok) {
-                        this.orders = await res.json();
+                    try {
+                        const res = await fetch('/api/os', {
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        if (res.ok) {
+                            this.orders = await res.json();
+                        }
+                    } catch(e) {
+                        console.error('Erro ao carregar dados');
                     }
                 },
 
@@ -240,7 +244,10 @@
                     try {
                         const res = await fetch('/api/labs', {
                             method: 'POST',
-                            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}`},
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${this.token}` 
+                            },
                             body: JSON.stringify(this.newLab)
                         });
                         const data = await res.json();
@@ -259,7 +266,10 @@
                     try {
                         const res = await fetch('/api/dentists', {
                             method: 'POST',
-                            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}`},
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${this.token}` 
+                            },
                             body: JSON.stringify(this.newDentist)
                         });
                         const data = await res.json();
@@ -278,7 +288,10 @@
                     try {
                         const res = await fetch('/api/os', {
                             method: 'POST',
-                            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}`},
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${this.token}` 
+                            },
                             body: JSON.stringify(this.newOS)
                         });
                         const data = await res.json();
@@ -299,7 +312,7 @@
                     try {
                         const res = await fetch(`/api/os/${id}/cancel`, {
                             method: 'PUT',
-                            headers: {'Authorization': `Bearer ${this.token}`}
+                            headers: { 'Authorization': `Bearer ${this.token}` }
                         });
                         if(res.ok) {
                             this.showMsg('OS cancelada com sucesso.', 'success');
