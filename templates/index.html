@@ -172,12 +172,12 @@
         </main>
     </div>
 
-    <script>
+<script>
         function app() {
             return {
-                token: localStorage.getItem('jwt_token'),
-                role: localStorage.getItem('user_role'),
-                name: localStorage.getItem('user_name'),
+                token: localStorage.getItem('jwt_token') || null,
+                role: localStorage.getItem('user_role') || '',
+                name: localStorage.getItem('user_name') || '',
                 username: '',
                 password: '',
                 message: '',
@@ -188,16 +188,16 @@
                 orders: [],
 
                 init() {
-                    // Validação estrutural de JWT: um token real SEMPRE tem 3 partes separadas por ponto.
-                    // Qualquer lixo de cache que não obedeça a essa regra será expurgado e barrado visualmente.
-                    const isValidToken = this.token && typeof this.token === 'string' && this.token.split('.').length === 3;
+                    const rawToken = localStorage.getItem('jwt_token');
+                    // Validação estrutural de JWT rigorosa
+                    const isValidToken = rawToken && typeof rawToken === 'string' && rawToken.split('.').length === 3;
                     
                     if (!isValidToken) {
                         this.forceLogout(false);
                         return;
                     }
-                    
-                    this.loadData();
+                    this.token = rawToken;
+                    this.loadData(rawToken);
                 },
 
                 showMsg(text, type = 'success') {
@@ -211,8 +211,8 @@
                     localStorage.removeItem('user_role');
                     localStorage.removeItem('user_name');
                     this.token = null;
-                    this.role = null;
-                    this.name = null;
+                    this.role = '';
+                    this.name = '';
                     if (showAlert) {
                         this.showMsg('Sessão inválida ou expirada. Faça login novamente.', 'error');
                     }
@@ -226,15 +226,22 @@
                             body: JSON.stringify({ username: this.username, password: this.password })
                         });
                         const data = await res.json();
-                        if(res.ok) {
-                            this.token = data.token;
-                            this.role = data.role;
-                            this.name = data.name;
+                        
+                        if(res.ok && data.token) {
+                            // Salva a string crua primeiro
                             localStorage.setItem('jwt_token', data.token);
                             localStorage.setItem('user_role', data.role);
                             localStorage.setItem('user_name', data.name);
+                            
+                            // Atualiza interface
+                            this.token = data.token;
+                            this.role = data.role;
+                            this.name = data.name;
+                            
                             this.showMsg('Login realizado com sucesso!', 'success');
-                            this.loadData();
+                            
+                            // Passa o token diretamente para a função para burlar qualquer atraso do Proxy do Alpine
+                            this.loadData(data.token);
                         } else {
                             this.showMsg(data.error || data.msg || 'Credenciais inválidas', 'error');
                         }
@@ -248,12 +255,16 @@
                     this.showMsg('Sessão encerrada.', 'success');
                 },
 
-                async loadData() {
+                // Todas as funções agora buscam o token garantido diretamente (via argumento ou localStorage cru)
+                async loadData(explicitToken = null) {
+                    const activeToken = explicitToken || localStorage.getItem('jwt_token');
+                    if (!activeToken) return;
+                    
                     try {
                         const endpoint = this.role === 'master' ? '/api/labs' : '/api/os';
                         
                         const res = await fetch(endpoint, {
-                            headers: { 'Authorization': `Bearer ${this.token}` }
+                            headers: { 'Authorization': 'Bearer ' + activeToken }
                         });
                         
                         if (res.status === 401 || res.status === 422) {
@@ -270,12 +281,15 @@
                 },
 
                 async createLab() {
+                    const activeToken = localStorage.getItem('jwt_token');
+                    if (!activeToken) return;
+
                     try {
                         const res = await fetch('/api/labs', {
                             method: 'POST',
                             headers: { 
                                 'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${this.token}` 
+                                'Authorization': 'Bearer ' + activeToken 
                             },
                             body: JSON.stringify(this.newLab)
                         });
@@ -298,12 +312,15 @@
                 },
 
                 async createDentist() {
+                    const activeToken = localStorage.getItem('jwt_token');
+                    if (!activeToken) return;
+
                     try {
                         const res = await fetch('/api/dentists', {
                             method: 'POST',
                             headers: { 
                                 'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${this.token}` 
+                                'Authorization': 'Bearer ' + activeToken 
                             },
                             body: JSON.stringify(this.newDentist)
                         });
@@ -326,12 +343,15 @@
                 },
 
                 async createOS() {
+                    const activeToken = localStorage.getItem('jwt_token');
+                    if (!activeToken) return;
+
                     try {
                         const res = await fetch('/api/os', {
                             method: 'POST',
                             headers: { 
                                 'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${this.token}` 
+                                'Authorization': 'Bearer ' + activeToken 
                             },
                             body: JSON.stringify(this.newOS)
                         });
@@ -356,10 +376,14 @@
 
                 async cancelOS(id) {
                     if(!confirm('Deseja realmente cancelar esta OS?')) return;
+                    
+                    const activeToken = localStorage.getItem('jwt_token');
+                    if (!activeToken) return;
+
                     try {
                         const res = await fetch(`/api/os/${id}/cancel`, {
                             method: 'PUT',
-                            headers: { 'Authorization': `Bearer ${this.token}` }
+                            headers: { 'Authorization': 'Bearer ' + activeToken }
                         });
                         
                         if (res.status === 401 || res.status === 422) {
