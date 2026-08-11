@@ -13,7 +13,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///alg_lab.db')
+
+# CORREÇÃO CRÍTICA SUPABASE: Converte postgres:// para postgresql:// caso necessário
+db_url = os.getenv('DATABASE_URL', 'sqlite:///alg_lab.db')
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'dev-secret-key-123')
 db.init_app(app)
 jwt = JWTManager(app)
@@ -44,7 +50,7 @@ def index():
 # --- AUTENTICAÇÃO ---
 @app.route('/api/login', methods=['POST'])
 def login():
-    data = request.json or request.form
+    data = request.get_json() or request.form
     user = User.query.filter_by(username=data.get('username')).first()
     if user and check_password_hash(user.password_hash, data.get('password')):
         token = create_access_token(identity={'id': user.id, 'lab_id': user.lab_id, 'role': user.role})
@@ -60,7 +66,8 @@ def manage_labs():
         return jsonify({'error': 'Acesso negado'}), 403
 
     if request.method == 'POST':
-        data = request.get_json(silent=True) or request.form
+        # Removido o silent=True para evitar parse incorreto mascarado
+        data = request.get_json() or request.form
         name = data.get('name')
         admin_name = data.get('admin_name')
         admin_username = data.get('admin_username')
@@ -99,7 +106,7 @@ def manage_dentists():
         return jsonify({'error': 'Acesso negado'}), 403
 
     if request.method == 'POST':
-        data = request.get_json(silent=True) or request.form
+        data = request.get_json() or request.form
         username = data.get('username')
         name = data.get('name')
         password = data.get('password')
@@ -141,7 +148,7 @@ def handle_os():
     if request.method == 'POST':
         if current_user['role'] != 'dentist':
             return jsonify({'error': 'Apenas clientes/dentistas podem gerar OS'}), 403
-        data = request.get_json(silent=True) or request.form
+        data = request.get_json() or request.form
         
         patient_name = data.get('patient_name')
         work_type = data.get('work_type')
@@ -162,7 +169,6 @@ def handle_os():
         db.session.commit()
         return jsonify({'message': 'OS gerada com sucesso!', 'os_id': new_os.id, 'os_number': new_os.os_number}), 201
 
-    # GET: Listar OS conforme o perfil
     if current_user['role'] == 'dentist':
         orders = ServiceOrder.query.filter_by(dentist_id=current_user['id']).all()
     else:
