@@ -168,12 +168,12 @@
         </main>
     </div>
 
-    <script>
+<script>
         function app() {
             return {
-                token: localStorage.getItem('jwt_token') || null,
-                role: localStorage.getItem('user_role') || '',
-                name: localStorage.getItem('user_name') || '',
+                token: localStorage.getItem('jwt_token'),
+                role: localStorage.getItem('user_role'),
+                name: localStorage.getItem('user_name'),
                 username: '',
                 password: '',
                 message: '',
@@ -184,13 +184,31 @@
                 orders: [],
 
                 init() {
-                    if (this.token) { this.loadData(); }
+                    // 1. Filtro de segurança: limpa sujeiras de cache onde o JS gravou texto "null"
+                    if (!this.token || this.token === 'null' || this.token === 'undefined' || this.token === '') {
+                        this.forceLogout(false);
+                        return;
+                    }
+                    
+                    // 2. Tenta validar o token silenciosamente com o servidor no momento em que a página abre
+                    this.loadData();
                 },
 
                 showMsg(text, type = 'success') {
                     this.message = text;
                     this.messageType = type;
                     setTimeout(() => { if(this.message === text) this.message = ''; }, 5000);
+                },
+
+                // Função centralizada para derrubar a sessão em caso de erro 401 ou 422
+                forceLogout(showAlert = true) {
+                    localStorage.clear();
+                    this.token = null;
+                    this.role = '';
+                    this.name = '';
+                    if (showAlert) {
+                        this.showMsg('Sessão inválida ou expirada. Faça login novamente.', 'error');
+                    }
                 },
 
                 async login() {
@@ -211,7 +229,6 @@
                             this.showMsg('Login realizado com sucesso!', 'success');
                             this.loadData();
                         } else {
-                            // Correção: Agora captura também o data.msg vindo do JWT
                             this.showMsg(data.error || data.msg || 'Credenciais inválidas', 'error');
                         }
                     } catch (e) {
@@ -228,12 +245,21 @@
                 },
 
                 async loadData() {
-                    if (this.role === 'master') return;
                     try {
-                        const res = await fetch('/api/os', {
+                        // Faz uma pequena requisição para validar o token com base no papel do usuário
+                        const endpoint = this.role === 'master' ? '/api/labs' : '/api/os';
+                        
+                        const res = await fetch(endpoint, {
                             headers: { 'Authorization': `Bearer ${this.token}` }
                         });
-                        if (res.ok) {
+                        
+                        // Se o Flask barrar a tentativa (token corrompido, vazio ou falso), derruba pro login
+                        if (res.status === 401 || res.status === 422) {
+                            this.forceLogout(true);
+                            return;
+                        }
+
+                        if (res.ok && this.role !== 'master') {
                             this.orders = await res.json();
                         }
                     } catch(e) {
@@ -251,12 +277,18 @@
                             },
                             body: JSON.stringify(this.newLab)
                         });
+                        
+                        // Captura o 422 ou 401
+                        if (res.status === 401 || res.status === 422) {
+                            this.forceLogout(true);
+                            return;
+                        }
+
                         const data = await res.json();
                         if(res.ok) {
                             this.showMsg(data.message || 'Laboratório criado com sucesso!', 'success');
                             this.newLab = { name: '', admin_name: '', admin_username: '', admin_password: '' };
                         } else {
-                            // Correção Crítica para capturar o erro 422 de JWT (que envia msg)
                             this.showMsg(data.error || data.msg || 'Erro ao criar laboratório', 'error');
                         }
                     } catch(e) {
@@ -274,6 +306,12 @@
                             },
                             body: JSON.stringify(this.newDentist)
                         });
+
+                        if (res.status === 401 || res.status === 422) {
+                            this.forceLogout(true);
+                            return;
+                        }
+
                         const data = await res.json();
                         if(res.ok) {
                             this.showMsg(data.message || 'Dentista cadastrado com sucesso!', 'success');
@@ -296,6 +334,12 @@
                             },
                             body: JSON.stringify(this.newOS)
                         });
+
+                        if (res.status === 401 || res.status === 422) {
+                            this.forceLogout(true);
+                            return;
+                        }
+
                         const data = await res.json();
                         if(res.ok) {
                             this.showMsg(data.message || 'Ordem de serviço gerada!', 'success');
@@ -316,6 +360,12 @@
                             method: 'PUT',
                             headers: { 'Authorization': `Bearer ${this.token}` }
                         });
+                        
+                        if (res.status === 401 || res.status === 422) {
+                            this.forceLogout(true);
+                            return;
+                        }
+
                         if(res.ok) {
                             this.showMsg('OS cancelada com sucesso.', 'success');
                             this.loadData();
