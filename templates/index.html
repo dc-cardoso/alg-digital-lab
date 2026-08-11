@@ -211,7 +211,8 @@
                             this.showMsg('Login realizado com sucesso!', 'success');
                             this.loadData();
                         } else {
-                            this.showMsg(data.error || 'Credenciais inválidas', 'error');
+                            // Correção: Agora captura também o data.msg vindo do JWT
+                            this.showMsg(data.error || data.msg || 'Credenciais inválidas', 'error');
                         }
                     } catch (e) {
                         this.showMsg('Erro de conexão com o servidor', 'error');
@@ -255,7 +256,8 @@
                             this.showMsg(data.message || 'Laboratório criado com sucesso!', 'success');
                             this.newLab = { name: '', admin_name: '', admin_username: '', admin_password: '' };
                         } else {
-                            this.showMsg(data.error || 'Erro ao criar laboratório', 'error');
+                            // Correção Crítica para capturar o erro 422 de JWT (que envia msg)
+                            this.showMsg(data.error || data.msg || 'Erro ao criar laboratório', 'error');
                         }
                     } catch(e) {
                         this.showMsg('Erro de conexão ao cadastrar laboratório', 'error');
@@ -277,7 +279,7 @@
                             this.showMsg(data.message || 'Dentista cadastrado com sucesso!', 'success');
                             this.newDentist = { name: '', username: '', password: '' };
                         } else {
-                            this.showMsg(data.error || 'Erro ao cadastrar dentista', 'error');
+                            this.showMsg(data.error || data.msg || 'Erro ao cadastrar dentista', 'error');
                         }
                     } catch(e) {
                         this.showMsg('Erro de conexão ao cadastrar dentista', 'error');
@@ -300,7 +302,7 @@
                             this.newOS = { patient_name: '', work_type: '', color: '', is_digital: true, notes: '' };
                             this.loadData();
                         } else {
-                            this.showMsg(data.error || 'Erro ao gerar OS', 'error');
+                            this.showMsg(data.error || data.msg || 'Erro ao gerar OS', 'error');
                         }
                     } catch(e) {
                         this.showMsg('Erro de conexão ao gerar OS', 'error');
@@ -319,7 +321,7 @@
                             this.loadData();
                         } else {
                             const data = await res.json();
-                            this.showMsg(data.error || 'Erro ao cancelar OS', 'error');
+                            this.showMsg(data.error || data.msg || 'Erro ao cancelar OS', 'error');
                         }
                     } catch(e) {
                         this.showMsg('Erro de conexão ao cancelar OS', 'error');
