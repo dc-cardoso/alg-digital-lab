@@ -2,384 +2,354 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ALG Digital Lab - Plataforma B2B</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Adicionado html2pdf para geração do extrato da OS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         [x-cloak] { display: none !important; }
+        .chat-container::-webkit-scrollbar { width: 6px; }
+        .chat-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen font-sans" x-data="app()">
+<body class="bg-slate-50 min-h-screen font-sans text-slate-800" x-data="app()">
 
     <!-- TELA DE LOGIN -->
-    <div x-cloak x-show="!token" class="flex items-center justify-center min-h-screen">
-        <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md border border-slate-100">
-            <h2 class="text-2xl font-black text-slate-800 text-center mb-2">ALG Digital Lab</h2>
-            <p class="text-sm text-slate-500 text-center mb-6">Acesse sua conta para continuar</p>
-
-            <template x-if="message">
-                <div :class="messageType === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'" class="p-3 mb-4 rounded-lg text-sm border font-medium text-center" x-text="message"></div>
-            </template>
-
-            <form @submit.prevent="login" class="space-y-4">
+    <div x-cloak x-show="!token" class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-100">
+            <h2 class="text-3xl font-black text-slate-800 text-center mb-1">ALG Digital Lab</h2>
+            <p class="text-sm text-slate-500 text-center mb-8">Acesse sua conta B2B</p>
+            <template x-if="message"><div class="p-3 mb-4 rounded-lg text-sm border font-medium text-center bg-red-50 text-red-700" x-text="message"></div></template>
+            <form @submit.prevent="login" class="space-y-5">
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Usuário</label>
-                    <input type="text" x-model="username" required class="w-full border border-slate-200 rounded-lg p-3 text-sm focus:outline-none focus:border-blue-500">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Usuário</label>
+                    <input type="text" x-model="username" required class="w-full border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Senha</label>
-                    <input type="password" x-model="password" required class="w-full border border-slate-200 rounded-lg p-3 text-sm focus:outline-none focus:border-blue-500">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Senha</label>
+                    <input type="password" x-model="password" required class="w-full border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition">
                 </div>
-                <button type="submit" class="w-full bg-blue-600 text-white font-semibold p-3 rounded-lg hover:bg-blue-700 transition">Entrar na Plataforma</button>
+                <button type="submit" class="w-full bg-blue-600 text-white font-bold p-3 rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200">Entrar na Plataforma</button>
             </form>
         </div>
     </div>
 
     <!-- PAINEL DA APLICAÇÃO -->
     <div x-cloak x-show="token" class="flex flex-col min-h-screen">
-        <header class="bg-white border-b border-slate-200 px-8 py-4 flex justify-between items-center shadow-sm">
-            <h1 class="text-xl font-black text-slate-800">ALG Digital Lab <span class="text-xs bg-blue-100 text-blue-700 py-1 px-2 rounded-full uppercase ml-2" x-text="role"></span></h1>
+        <header class="bg-white border-b border-slate-200 px-6 py-4 flex flex-wrap justify-between items-center shadow-sm gap-4">
+            <h1 class="text-xl font-black text-slate-800 flex items-center gap-2">
+                ALG Digital Lab <span class="text-xs bg-blue-100 text-blue-700 py-1 px-3 rounded-full uppercase tracking-wider font-bold" x-text="role"></span>
+            </h1>
             <div class="flex items-center space-x-4">
                 <span class="text-sm font-semibold text-slate-600" x-text="name"></span>
-                <button @click="logout" class="bg-slate-100 text-slate-700 hover:bg-red-50 hover:text-red-600 px-3 py-1.5 rounded-lg text-sm font-medium transition">Sair</button>
+                <button @click="logout" class="bg-slate-100 text-slate-700 hover:bg-red-50 hover:text-red-600 px-4 py-2 rounded-lg text-sm font-bold transition">Sair</button>
             </div>
         </header>
 
-        <main class="flex-1 p-8 max-w-6xl mx-auto w-full">
+        <main class="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
             <template x-if="message">
-                <div :class="messageType === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'" class="p-4 mb-6 rounded-xl text-sm border font-medium flex justify-between items-center">
+                <div class="bg-blue-50 text-blue-800 p-4 mb-6 rounded-xl text-sm border border-blue-200 font-bold flex justify-between items-center">
                     <span x-text="message"></span>
-                    <button @click="message = ''" class="font-bold text-lg">&times;</button>
+                    <button @click="message = ''" class="text-xl">&times;</button>
                 </div>
             </template>
 
-            <!-- PAINEL MASTER -->
-            <div x-show="role === 'master'">
-                <h2 class="text-2xl font-bold text-slate-800 mb-6">Gestão de Laboratórios</h2>
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
-                    <h3 class="text-lg font-bold text-slate-700 mb-4">Cadastrar Novo Laboratório</h3>
-                    <form @submit.prevent="createLab" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input type="text" x-model="newLab.name" placeholder="Nome do Laboratório" required class="border p-2.5 rounded-lg text-sm focus:outline-none focus:border-blue-500">
-                        <input type="text" x-model="newLab.admin_name" placeholder="Nome do Responsável" required class="border p-2.5 rounded-lg text-sm focus:outline-none focus:border-blue-500">
-                        <input type="text" x-model="newLab.admin_username" placeholder="Usuário de Acesso" required class="border p-2.5 rounded-lg text-sm focus:outline-none focus:border-blue-500">
-                        <input type="password" x-model="newLab.admin_password" placeholder="Senha de Acesso" required class="border p-2.5 rounded-lg text-sm focus:outline-none focus:border-blue-500">
-                        <button type="submit" class="md:col-span-2 bg-emerald-600 text-white font-semibold py-2.5 rounded-lg hover:bg-emerald-700 transition">Criar Laboratório</button>
-                    </form>
-                </div>
+            <!-- NAVEGAÇÃO INTERNA LAB_ADMIN -->
+            <div x-show="role === 'lab_admin'" class="flex space-x-2 mb-6 overflow-x-auto pb-2">
+                <button @click="currentTab = 'os'" :class="currentTab === 'os' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600'" class="px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition whitespace-nowrap">Ordens de Serviço</button>
+                <button @click="currentTab = 'clients'; loadDentists()" :class="currentTab === 'clients' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600'" class="px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition whitespace-nowrap">Gerenciar Clientes</button>
+                <button @click="currentTab = 'billing'; loadBilling()" :class="currentTab === 'billing' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600'" class="px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition whitespace-nowrap">Faturamento / Histórico</button>
             </div>
 
-            <!-- PAINEL LAB_ADMIN -->
-            <div x-show="role === 'lab_admin'">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-slate-800">Painel do Laboratório</h2>
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
-                    <h3 class="text-lg font-bold text-slate-700 mb-4">Cadastrar Novo Cliente (Dentista)</h3>
-                    <form @submit.prevent="createDentist" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <input type="text" x-model="newDentist.name" placeholder="Nome do Doutor(a)" required class="border p-2.5 rounded-lg text-sm focus:outline-none focus:border-blue-500">
-                        <input type="text" x-model="newDentist.username" placeholder="Login / Usuário" required class="border p-2.5 rounded-lg text-sm focus:outline-none focus:border-blue-500">
-                        <input type="password" x-model="newDentist.password" placeholder="Senha" required class="border p-2.5 rounded-lg text-sm focus:outline-none focus:border-blue-500">
-                        <button type="submit" class="md:col-span-3 bg-blue-600 text-white font-semibold py-2.5 rounded-lg hover:bg-blue-700 transition">Salvar Cliente</button>
-                    </form>
-                </div>
-
-                <h3 class="text-xl font-bold text-slate-800 mb-4">Ordens de Serviço do Laboratório</h3>
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase">
-                                <th class="p-4">Nº OS</th>
-                                <th class="p-4">Paciente</th>
-                                <th class="p-4">Trabalho</th>
-                                <th class="p-4">Tipo</th>
-                                <th class="p-4">Status</th>
-                                <th class="p-4 text-right">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100 text-sm">
-                            <template x-for="os in orders" :key="os.id">
-                                <tr>
-                                    <td class="p-4 font-semibold text-blue-600" x-text="os.os_number"></td>
-                                    <td class="p-4 text-slate-800" x-text="os.patient_name"></td>
-                                    <td class="p-4 text-slate-600" x-text="os.work_type + ' (' + os.color + ')'"></td>
-                                    <td class="p-4 text-slate-600" x-text="os.is_digital ? 'Digital' : 'Físico'"></td>
-                                    <td class="p-4"><span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-700" x-text="os.status"></span></td>
-                                    <td class="p-4 text-right">
-                                        <button @click="cancelOS(os.id)" class="text-red-600 hover:underline text-xs font-bold">Cancelar</button>
-                                    </td>
-                                </tr>
-                            </template>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- PAINEL DENTISTA -->
-            <div x-show="role === 'dentist'">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-slate-800">Portal do Dentista - Ordens de Serviço</h2>
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
-                    <h3 class="text-lg font-bold text-slate-700 mb-4">Nova Ordem de Serviço</h3>
-                    <form @submit.prevent="createOS" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input type="text" x-model="newOS.patient_name" placeholder="Nome do Paciente" required class="border p-2.5 rounded-lg text-sm focus:outline-none focus:border-blue-500">
-                        <input type="text" x-model="newOS.work_type" placeholder="Tipo de Trabalho (Coroa, Faceta, etc.)" required class="border p-2.5 rounded-lg text-sm focus:outline-none focus:border-blue-500">
-                        <input type="text" x-model="newOS.color" placeholder="Cor (A2, A3, B1, etc.)" class="border p-2.5 rounded-lg text-sm focus:outline-none focus:border-blue-500">
-                        <select x-model="newOS.is_digital" class="border p-2.5 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500">
-                            <option :value="true">Trabalho Digital</option>
-                            <option :value="false">Trabalho Físico (Requer Retirada)</option>
+            <!-- TAB: OS (LAB & DENTIST) -->
+            <div x-show="currentTab === 'os' || role === 'dentist'">
+                
+                <!-- FORM: CRIAR OS (Apenas Dentista) -->
+                <div x-show="role === 'dentist'" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
+                    <h3 class="text-lg font-black text-slate-800 mb-4">Nova Ordem de Serviço</h3>
+                    <form @submit.prevent="createOS" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <input type="text" x-model="newOS.patient_name" placeholder="Nome do Paciente" required class="border p-3 rounded-xl text-sm focus:ring-2 outline-none md:col-span-1">
+                        <input type="text" x-model="newOS.work_type" placeholder="Tipo de Trabalho (Coroa, Faceta, etc)" required class="border p-3 rounded-xl text-sm focus:ring-2 outline-none">
+                        <input type="text" x-model="newOS.color" placeholder="Cor (Ex: A2, B1)" class="border p-3 rounded-xl text-sm focus:ring-2 outline-none">
+                        <select x-model="newOS.is_digital" class="border p-3 rounded-xl text-sm bg-white focus:ring-2 outline-none">
+                            <option :value="true">Trabalho Digital (Envio de STL/PLY)</option>
+                            <option :value="false">Trabalho Físico (Requer Retirada no Consultório)</option>
                         </select>
-                        <textarea x-model="newOS.notes" placeholder="Observações adicionais..." class="md:col-span-2 border p-2.5 rounded-lg text-sm focus:outline-none focus:border-blue-500"></textarea>
-                        <button type="submit" class="md:col-span-2 bg-blue-600 text-white font-semibold py-2.5 rounded-lg hover:bg-blue-700 transition">Gerar Ordem de Serviço</button>
+                        <textarea x-model="newOS.notes" placeholder="Observações e prescrições..." class="md:col-span-2 border p-3 rounded-xl text-sm focus:ring-2 outline-none"></textarea>
+                        <button type="submit" class="md:col-span-3 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition">Gerar Ordem de Serviço</button>
                     </form>
                 </div>
-                <h3 class="text-xl font-bold text-slate-800 mb-4">Meus Trabalhos Solicitados</h3>
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase">
-                                <th class="p-4">Nº OS</th>
-                                <th class="p-4">Paciente</th>
-                                <th class="p-4">Trabalho</th>
-                                <th class="p-4">Envio</th>
-                                <th class="p-4">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100 text-sm">
-                            <template x-for="os in orders" :key="os.id">
-                                <tr>
-                                    <td class="p-4 font-semibold text-blue-600" x-text="os.os_number"></td>
-                                    <td class="p-4 text-slate-800" x-text="os.patient_name"></td>
-                                    <td class="p-4 text-slate-600" x-text="os.work_type + ' (' + os.color + ')'"></td>
-                                    <td class="p-4 text-slate-600" x-text="os.is_digital ? 'Digital' : 'Físico'"></td>
-                                    <td class="p-4"><span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700" x-text="os.status"></span></td>
+
+                <!-- LISTA DE OS -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[800px]">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase">
+                                    <th class="p-4">Nº OS</th>
+                                    <th class="p-4" x-show="role !== 'dentist'">Dentista</th>
+                                    <th class="p-4">Paciente</th>
+                                    <th class="p-4">Trabalho / Cor</th>
+                                    <th class="p-4">Tipo</th>
+                                    <th class="p-4">Status</th>
+                                    <th class="p-4 text-center">Ações</th>
                                 </tr>
-                            </template>
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 text-sm font-medium">
+                                <template x-for="os in orders" :key="os.id">
+                                    <tr class="hover:bg-slate-50 transition cursor-pointer" @click="openOS(os)">
+                                        <td class="p-4 font-black text-blue-600" x-text="os.os_number"></td>
+                                        <td class="p-4 text-slate-700" x-show="role !== 'dentist'" x-text="os.dentist_name"></td>
+                                        <td class="p-4 text-slate-800" x-text="os.patient_name"></td>
+                                        <td class="p-4 text-slate-600" x-text="os.work_type + (os.color ? ' - Cor: ' + os.color : '')"></td>
+                                        <td class="p-4">
+                                            <span :class="os.is_digital ? 'bg-purple-100 text-purple-700' : 'bg-orange-100 text-orange-700'" class="px-2 py-1 text-xs font-bold rounded-md" x-text="os.is_digital ? 'Digital' : 'Físico'"></span>
+                                        </td>
+                                        <td class="p-4">
+                                            <span class="px-2 py-1 text-xs font-bold rounded-md bg-slate-100 text-slate-600" x-text="os.status"></span>
+                                        </td>
+                                        <td class="p-4 text-center space-x-2">
+                                            <button @click.stop="openOS(os)" class="text-blue-600 hover:underline text-xs font-bold">Ver Detalhes</button>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
+
+            <!-- TAB: GERENCIAR CLIENTES (Apenas LAB) -->
+            <div x-show="role === 'lab_admin' && currentTab === 'clients'">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
+                    <h3 class="text-lg font-black text-slate-800 mb-4">Cadastrar Novo Dentista</h3>
+                    <form @submit.prevent="createDentist" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <input type="text" x-model="newDentist.name" placeholder="Nome Completo do Doutor(a)" required class="border p-3 rounded-xl text-sm focus:ring-2 outline-none">
+                        <input type="text" x-model="newDentist.username" placeholder="Login / Usuário" required class="border p-3 rounded-xl text-sm focus:ring-2 outline-none">
+                        <input type="password" x-model="newDentist.password" placeholder="Senha Provisória" required class="border p-3 rounded-xl text-sm focus:ring-2 outline-none">
+                        <button type="submit" class="md:col-span-3 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition">Salvar Cliente</button>
+                    </form>
+                </div>
+                
+                <h3 class="font-bold text-slate-700 mb-4">Lista de Clientes Ativos</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <template x-for="d in dentists" :key="d.id">
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                            <h4 class="font-black text-slate-800" x-text="d.name"></h4>
+                            <p class="text-xs text-slate-500 mb-4">Login: <span x-text="d.username"></span></p>
+                            <button @click="alert('Para segurança, crie uma rota de RESET ou DELETE no backend e chame aqui.')" class="text-red-500 text-xs font-bold hover:underline">Revogar Acesso</button>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- TAB: FATURAMENTO (Apenas LAB) -->
+            <div x-show="role === 'lab_admin' && currentTab === 'billing'">
+                <h3 class="text-xl font-black text-slate-800 mb-6">Resumo de Produção (Extrato)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <template x-for="r in billing" :key="r.dentist_name">
+                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                            <div>
+                                <h4 class="font-black text-slate-800 text-lg mb-1" x-text="r.dentist_name"></h4>
+                                <p class="text-sm text-slate-500">Histórico de OS</p>
+                            </div>
+                            <div class="mt-4 pt-4 border-t border-slate-100 flex justify-between">
+                                <div><p class="text-xs text-slate-400 font-bold uppercase">Total</p><p class="text-xl font-black text-blue-600" x-text="r.total_os"></p></div>
+                                <div><p class="text-xs text-slate-400 font-bold uppercase">Concluídas</p><p class="text-xl font-black text-emerald-600" x-text="r.completed"></p></div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- TAB: MASTER (Gerenciar Labs) -->
+            <div x-show="role === 'master'">
+                <!-- Formulário de criação de Labs aqui (Igual ao do Claude, apenas com layout Tailwind atualizado) -->
+            </div>
+            
         </main>
+    </div>
+
+    <!-- MODAL DETALHES DA OS (Chat, Anexos, PDF) -->
+    <div x-cloak x-show="selectedOS" class="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden" @click.outside="selectedOS = null">
+            
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h2 class="text-xl font-black text-slate-800">Ordem de Serviço: <span class="text-blue-600" x-text="selectedOS?.os_number"></span></h2>
+                <div class="flex gap-2">
+                    <button @click="downloadPDF()" class="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-700">Gerar PDF</button>
+                    <button @click="selectedOS = null" class="bg-slate-200 text-slate-600 px-4 py-2 rounded-lg font-bold hover:bg-slate-300">Fechar</button>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-6" id="os-pdf-content">
+                
+                <!-- Coluna Esquerda: Dados -->
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Detalhes Clínicos</h3>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm space-y-2">
+                            <p><span class="font-bold text-slate-600">Paciente:</span> <span x-text="selectedOS?.patient_name"></span></p>
+                            <p><span class="font-bold text-slate-600">Doutor(a):</span> <span x-text="selectedOS?.dentist_name || name"></span></p>
+                            <p><span class="font-bold text-slate-600">Trabalho:</span> <span x-text="selectedOS?.work_type"></span></p>
+                            <p><span class="font-bold text-slate-600">Cor:</span> <span x-text="selectedOS?.color || 'N/A'"></span></p>
+                            <p><span class="font-bold text-slate-600">Formato:</span> <span x-text="selectedOS?.is_digital ? 'Digital (Envio de Arquivo)' : 'Físico (Retirar Moldagem)'"></span></p>
+                            <p><span class="font-bold text-slate-600">Prescrição:</span> <span x-text="selectedOS?.notes"></span></p>
+                            <p class="pt-2 mt-2 border-t border-slate-200"><span class="font-bold text-slate-600">Status Atual:</span> <span class="text-blue-600 font-black" x-text="selectedOS?.status"></span></p>
+                        </div>
+                    </div>
+                    
+                    <button x-show="selectedOS?.status !== 'CANCELLED'" @click="requestCancel()" class="w-full bg-red-50 text-red-600 border border-red-200 font-bold py-2 rounded-xl text-sm hover:bg-red-100 transition" x-text="role === 'lab_admin' ? 'Cancelar OS Oficialmente' : 'Solicitar Cancelamento'"></button>
+                </div>
+
+                <!-- Coluna Direita: Arquivos e Chat -->
+                <div class="space-y-6 html2pdf__page-break">
+                    
+                    <!-- Arquivos 3D / Fotos -->
+                    <div>
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Arquivos Anexos (STL, PLY, Fotos)</h3>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <div class="flex gap-2 mb-4">
+                                <input type="file" id="fileInput" class="text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                <button @click="uploadFile()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap">Enviar</button>
+                            </div>
+                            <ul class="space-y-2 text-sm">
+                                <template x-for="att in attachments" :key="att.url">
+                                    <li class="flex items-center gap-2"><svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg> <a :href="att.url" target="_blank" class="text-blue-600 hover:underline font-medium" x-text="att.name"></a></li>
+                                </template>
+                                <li x-show="attachments.length === 0" class="text-slate-400 text-xs italic">Nenhum arquivo anexado.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Chat Interno -->
+                    <div class="flex flex-col h-64 border border-slate-200 rounded-xl overflow-hidden bg-slate-50">
+                        <div class="bg-slate-200 text-xs font-bold text-slate-600 p-2 text-center">Mensagens do Trabalho</div>
+                        <div class="flex-1 overflow-y-auto p-4 space-y-3 chat-container">
+                            <template x-for="msg in chatMessages" :key="msg.id">
+                                <div :class="msg.sender === name ? 'ml-auto bg-blue-100 text-blue-900 rounded-br-none' : 'mr-auto bg-white border border-slate-200 text-slate-800 rounded-bl-none'" class="max-w-[80%] p-3 rounded-xl text-sm shadow-sm relative">
+                                    <p class="font-bold text-[10px] opacity-50 mb-1" x-text="msg.sender + ' - ' + msg.time"></p>
+                                    <p x-text="msg.message"></p>
+                                </div>
+                            </template>
+                        </div>
+                        <div class="p-2 bg-white border-t border-slate-200 flex gap-2">
+                            <input type="text" x-model="chatInput" @keyup.enter="sendMessage()" placeholder="Digite sua mensagem..." class="flex-1 bg-slate-100 border-none rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                            <button @click="sendMessage()" class="bg-blue-600 text-white px-4 rounded-lg font-bold text-sm">Enviar</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
         function app() {
             return {
-                token: null,
-                role: '',
-                name: '',
-                username: '',
-                password: '',
-                message: '',
-                messageType: 'success',
-                newLab: { name: '', admin_name: '', admin_username: '', admin_password: '' },
+                token: null, role: '', name: '', username: '', password: '',
+                message: '', currentTab: 'os',
                 newDentist: { name: '', username: '', password: '' },
                 newOS: { patient_name: '', work_type: '', color: '', is_digital: true, notes: '' },
-                orders: [],
-
-                cleanAuthToken(raw) {
-                    if (!raw) return null;
-                    let clean = String(raw).replace(/['"]+/g, '').replace(/^Bearer\s+/i, '').trim();
-                    return clean.split('.').length === 3 ? clean : null;
-                },
+                orders: [], dentists: [], billing: [],
+                
+                selectedOS: null, chatMessages: [], attachments: [], chatInput: '',
 
                 init() {
-                    const rawToken = localStorage.getItem('jwt_token');
-                    const clean = this.cleanAuthToken(rawToken);
-
-                    if (!clean) {
-                        this.forceLogout(false);
-                        return;
-                    }
-
-                    this.token = clean;
+                    this.token = localStorage.getItem('jwt_token');
                     this.role = localStorage.getItem('user_role') || '';
                     this.name = localStorage.getItem('user_name') || '';
-                    this.loadData();
+                    if (this.token) this.loadData();
                 },
-
-                showMsg(text, type = 'success') {
-                    this.message = text;
-                    this.messageType = type;
-                    setTimeout(() => { if (this.message === text) this.message = ''; }, 5000);
-                },
-
-                forceLogout(showAlert = true) {
-                    localStorage.clear();
-                    this.token = null;
-                    this.role = '';
-                    this.name = '';
-                    if (showAlert) {
-                        this.showMsg('Sessão inválida ou expirada. Faça login novamente.', 'error');
-                    }
-                },
-
-                authHeaders() {
-                    const t = this.cleanAuthToken(this.token || localStorage.getItem('jwt_token'));
-                    return t ? { 'Authorization': `Bearer ${t}` } : {};
-                },
-
+                logout() { localStorage.clear(); location.reload(); },
+                
+                authHeaders() { return { 'Authorization': `Bearer ${this.token}` }; },
+                
                 async login() {
-                    try {
-                        const res = await fetch('/api/login', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ username: this.username, password: this.password })
-                        });
-                        const data = await res.json();
-
-                        if (res.ok && data.token) {
-                            localStorage.setItem('jwt_token', data.token);
-                            localStorage.setItem('user_role', data.role);
-                            localStorage.setItem('user_name', data.name);
-
-                            this.token = data.token;
-                            this.role = data.role;
-                            this.name = data.name;
-
-                            this.showMsg('Login realizado com sucesso!', 'success');
-                            this.loadData();
-                        } else {
-                            this.showMsg(data.error || data.msg || 'Credenciais inválidas', 'error');
-                        }
-                    } catch (e) {
-                        this.showMsg('Erro de conexão com o servidor', 'error');
-                    }
-                },
-
-                logout() {
-                    this.forceLogout(false);
-                    this.showMsg('Sessão encerrada.', 'success');
+                    const res = await fetch('/api/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({username: this.username, password: this.password}) });
+                    const data = await res.json();
+                    if (res.ok) {
+                        localStorage.setItem('jwt_token', data.token); localStorage.setItem('user_role', data.role); localStorage.setItem('user_name', data.name);
+                        this.token = data.token; this.role = data.role; this.name = data.name;
+                        this.loadData();
+                    } else this.message = data.error;
                 },
 
                 async loadData() {
-                    if (!this.token) return;
-                    const r = this.role;
-
-                    try {
-                        const endpoint = r === 'master' ? '/api/labs' : '/api/os';
-                        const res = await fetch(endpoint, {
-                            method: 'GET',
-                            headers: { ...this.authHeaders(), 'Accept': 'application/json' }
-                        });
-
-                        if (res.status === 401 || res.status === 422) {
-                            this.forceLogout(true);
-                            return;
-                        }
-
-                        if (res.ok && r !== 'master') {
-                            this.orders = await res.json();
-                        }
-                    } catch (e) {
-                        console.error('Erro ao carregar dados:', e);
-                    }
+                    const res = await fetch('/api/os', { headers: this.authHeaders() });
+                    if(res.ok) this.orders = await res.json();
                 },
 
-                async createLab() {
-                    if (!this.token) return;
-                    try {
-                        const res = await fetch('/api/labs', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
-                            body: JSON.stringify(this.newLab)
-                        });
+                async loadDentists() {
+                    const res = await fetch('/api/dentists', { headers: this.authHeaders() });
+                    if(res.ok) this.dentists = await res.json();
+                },
 
-                        if (res.status === 401 || res.status === 422) {
-                            this.forceLogout(true);
-                            return;
-                        }
-
-                        const data = await res.json();
-                        if (res.ok) {
-                            this.showMsg(data.message || 'Laboratório criado com sucesso!', 'success');
-                            this.newLab = { name: '', admin_name: '', admin_username: '', admin_password: '' };
-                        } else {
-                            this.showMsg(data.error || data.msg || 'Erro ao criar laboratório', 'error');
-                        }
-                    } catch (e) {
-                        this.showMsg('Erro de conexão ao cadastrar laboratório', 'error');
-                    }
+                async loadBilling() {
+                    const res = await fetch('/api/billing', { headers: this.authHeaders() });
+                    if(res.ok) this.billing = await res.json();
                 },
 
                 async createDentist() {
-                    if (!this.token) return;
-                    try {
-                        const res = await fetch('/api/dentists', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
-                            body: JSON.stringify(this.newDentist)
-                        });
-
-                        if (res.status === 401 || res.status === 422) {
-                            this.forceLogout(true);
-                            return;
-                        }
-
-                        const data = await res.json();
-                        if (res.ok) {
-                            this.showMsg(data.message || 'Dentista cadastrado com sucesso!', 'success');
-                            this.newDentist = { name: '', username: '', password: '' };
-                        } else {
-                            this.showMsg(data.error || data.msg || 'Erro ao cadastrar dentista', 'error');
-                        }
-                    } catch (e) {
-                        this.showMsg('Erro de conexão ao cadastrar dentista', 'error');
-                    }
+                    const res = await fetch('/api/dentists', { method: 'POST', headers: {'Content-Type': 'application/json', ...this.authHeaders()}, body: JSON.stringify(this.newDentist) });
+                    if(res.ok) { this.message = 'Dentista Cadastrado!'; this.newDentist = {name:'', username:'', password:''}; this.loadDentists(); }
                 },
 
                 async createOS() {
-                    if (!this.token) return;
-                    try {
-                        const res = await fetch('/api/os', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
-                            body: JSON.stringify(this.newOS)
-                        });
-
-                        if (res.status === 401 || res.status === 422) {
-                            this.forceLogout(true);
-                            return;
-                        }
-
-                        const data = await res.json();
-                        if (res.ok) {
-                            this.showMsg(data.message || 'Ordem de serviço gerada!', 'success');
-                            this.newOS = { patient_name: '', work_type: '', color: '', is_digital: true, notes: '' };
-                            this.loadData();
-                        } else {
-                            this.showMsg(data.error || data.msg || 'Erro ao gerar OS', 'error');
-                        }
-                    } catch (e) {
-                        this.showMsg('Erro de conexão ao gerar OS', 'error');
-                    }
+                    const res = await fetch('/api/os', { method: 'POST', headers: {'Content-Type': 'application/json', ...this.authHeaders()}, body: JSON.stringify(this.newOS) });
+                    if(res.ok) { this.message = 'OS Gerada!'; this.newOS = {patient_name:'', work_type:'', color:'', is_digital:true, notes:''}; this.loadData(); }
                 },
 
-                async cancelOS(id) {
-                    if (!confirm('Deseja realmente cancelar esta OS?')) return;
-                    if (!this.token) return;
+                async openOS(os) {
+                    this.selectedOS = os;
+                    this.loadChat(os.id);
+                    this.loadAttachments(os.id);
+                },
 
-                    try {
-                        const res = await fetch(`/api/os/${id}/cancel`, {
-                            method: 'PUT',
-                            headers: { ...this.authHeaders() }
-                        });
+                async requestCancel() {
+                    if(!confirm('Deseja prosseguir com o cancelamento?')) return;
+                    const res = await fetch(`/api/os/${this.selectedOS.id}/cancel`, { method: 'PUT', headers: this.authHeaders() });
+                    if(res.ok) { this.selectedOS = null; this.loadData(); this.message = "Status da OS atualizado."; }
+                },
 
-                        if (res.status === 401 || res.status === 422) {
-                            this.forceLogout(true);
-                            return;
-                        }
+                async loadChat(id) {
+                    const res = await fetch(`/api/os/${id}/chat`, { headers: this.authHeaders() });
+                    if(res.ok) this.chatMessages = await res.json();
+                },
 
-                        if (res.ok) {
-                            this.showMsg('OS cancelada com sucesso.', 'success');
-                            this.loadData();
-                        } else {
-                            const data = await res.json();
-                            this.showMsg(data.error || data.msg || 'Erro ao cancelar OS', 'error');
-                        }
-                    } catch (e) {
-                        this.showMsg('Erro de conexão ao cancelar OS', 'error');
-                    }
+                async sendMessage() {
+                    if(!this.chatInput.trim()) return;
+                    const res = await fetch(`/api/os/${this.selectedOS.id}/chat`, { method: 'POST', headers: {'Content-Type': 'application/json', ...this.authHeaders()}, body: JSON.stringify({message: this.chatInput}) });
+                    if(res.ok) { this.chatInput = ''; this.loadChat(this.selectedOS.id); }
+                },
+
+                async loadAttachments(id) {
+                    const res = await fetch(`/api/os/${id}/attachments`, { headers: this.authHeaders() });
+                    if(res.ok) this.attachments = await res.json();
+                },
+
+                async uploadFile() {
+                    const fileInput = document.getElementById('fileInput');
+                    if(fileInput.files.length === 0) return alert('Selecione um arquivo.');
+                    
+                    const formData = new FormData();
+                    formData.append('file', fileInput.files[0]);
+
+                    const res = await fetch(`/api/os/${this.selectedOS.id}/upload`, { method: 'POST', headers: this.authHeaders(), body: formData });
+                    if(res.ok) { fileInput.value = ''; this.loadAttachments(this.selectedOS.id); }
+                    else alert('Erro ao enviar arquivo.');
+                },
+
+                downloadPDF() {
+                    const element = document.getElementById('os-pdf-content');
+                    const opt = {
+                        margin: 1, filename: `OS_${this.selectedOS.os_number}.pdf`,
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+                    };
+                    html2pdf().set(opt).from(element).save();
                 }
             }
         }
