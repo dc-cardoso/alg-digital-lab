@@ -6,7 +6,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
-        /* Oculta as telas até que o Alpine valide a segurança, impedindo "flicker" visual */
         [x-cloak] { display: none !important; }
     </style>
 </head>
@@ -18,7 +17,6 @@
             <h2 class="text-2xl font-black text-slate-800 text-center mb-2">ALG Digital Lab</h2>
             <p class="text-sm text-slate-500 text-center mb-6">Acesse sua conta para continuar</p>
             
-            <!-- Mensagem de Feedback -->
             <template x-if="message">
                 <div :class="messageType === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'" class="p-3 mb-4 rounded-lg text-sm border font-medium text-center" x-text="message"></div>
             </template>
@@ -39,7 +37,6 @@
 
     <!-- PAINEL DA APLICAÇÃO -->
     <div x-cloak x-show="token" class="flex flex-col min-h-screen">
-        <!-- Barra Superior -->
         <header class="bg-white border-b border-slate-200 px-8 py-4 flex justify-between items-center shadow-sm">
             <h1 class="text-xl font-black text-slate-800">ALG Digital Lab <span class="text-xs bg-blue-100 text-blue-700 py-1 px-2 rounded-full uppercase ml-2" x-text="role"></span></h1>
             <div class="flex items-center space-x-4">
@@ -49,8 +46,6 @@
         </header>
 
         <main class="flex-1 p-8 max-w-6xl mx-auto w-full">
-            
-            <!-- ALERTA GLOBAL DE FEEDBACK NA TELA -->
             <template x-if="message">
                 <div :class="messageType === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'" class="p-4 mb-6 rounded-xl text-sm border font-medium flex justify-between items-center">
                     <span x-text="message"></span>
@@ -58,7 +53,7 @@
                 </div>
             </template>
 
-            <!-- PAINEL MASTER (ADMINISTRADOR GERAL) -->
+            <!-- PAINEL MASTER -->
             <div x-show="role === 'master'">
                 <h2 class="text-2xl font-bold text-slate-800 mb-6">Gestão de Laboratórios</h2>
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
@@ -73,12 +68,11 @@
                 </div>
             </div>
 
-            <!-- PAINEL DO LABORATÓRIO (LAB_ADMIN) -->
+            <!-- PAINEL LAB_ADMIN -->
             <div x-show="role === 'lab_admin'">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-bold text-slate-800">Painel do Laboratório</h2>
                 </div>
-
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
                     <h3 class="text-lg font-bold text-slate-700 mb-4">Cadastrar Novo Cliente (Dentista)</h3>
                     <form @submit.prevent="createDentist" class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -120,13 +114,11 @@
                 </div>
             </div>
 
-            <!-- PAINEL DO CLIENTE / DENTISTA -->
+            <!-- PAINEL DENTISTA -->
             <div x-show="role === 'dentist'">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-bold text-slate-800">Portal do Dentista - Ordens de Serviço</h2>
                 </div>
-
-                <!-- Formulário Nova OS -->
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
                     <h3 class="text-lg font-bold text-slate-700 mb-4">Nova Ordem de Serviço</h3>
                     <form @submit.prevent="createOS" class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -141,7 +133,6 @@
                         <button type="submit" class="md:col-span-2 bg-blue-600 text-white font-semibold py-2.5 rounded-lg hover:bg-blue-700 transition">Gerar Ordem de Serviço</button>
                     </form>
                 </div>
-
                 <h3 class="text-xl font-bold text-slate-800 mb-4">Meus Trabalhos Solicitados</h3>
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                     <table class="w-full text-left border-collapse">
@@ -168,16 +159,15 @@
                     </table>
                 </div>
             </div>
-
         </main>
     </div>
 
-<script>
+    <script>
         function app() {
             return {
-                token: localStorage.getItem('jwt_token') || null,
-                role: localStorage.getItem('user_role') || '',
-                name: localStorage.getItem('user_name') || '',
+                token: null,
+                role: '',
+                name: '',
                 username: '',
                 password: '',
                 message: '',
@@ -187,17 +177,27 @@
                 newOS: { patient_name: '', work_type: '', color: '', is_digital: true, notes: '' },
                 orders: [],
 
+                // Rotina de limpeza profunda e blindada do token
+                cleanAuthToken(raw) {
+                    if (!raw) return null;
+                    // Força virar string, remove qualquer tipo de aspas invisíveis de cache mobile, duplos "Bearer" e espaços
+                    let clean = String(raw).replace(/['"]+/g, '').replace(/^Bearer\s+/i, '').trim();
+                    return clean.split('.').length === 3 ? clean : null;
+                },
+
                 init() {
                     const rawToken = localStorage.getItem('jwt_token');
-                    // Validação estrutural de JWT rigorosa
-                    const isValidToken = rawToken && typeof rawToken === 'string' && rawToken.split('.').length === 3;
+                    const clean = this.cleanAuthToken(rawToken);
                     
-                    if (!isValidToken) {
+                    if (!clean) {
                         this.forceLogout(false);
                         return;
                     }
-                    this.token = rawToken;
-                    this.loadData(rawToken);
+                    
+                    this.token = clean;
+                    this.role = localStorage.getItem('user_role') || '';
+                    this.name = localStorage.getItem('user_name') || '';
+                    this.loadData(clean, this.role);
                 },
 
                 showMsg(text, type = 'success') {
@@ -207,9 +207,7 @@
                 },
 
                 forceLogout(showAlert = true) {
-                    localStorage.removeItem('jwt_token');
-                    localStorage.removeItem('user_role');
-                    localStorage.removeItem('user_name');
+                    localStorage.clear();
                     this.token = null;
                     this.role = '';
                     this.name = '';
@@ -227,21 +225,20 @@
                         });
                         const data = await res.json();
                         
-                        if(res.ok && data.token) {
-                            // Salva a string crua primeiro
+                        if (res.ok && data.token) {
+                            // Salva exatamente o texto limpo recebido pelo servidor
                             localStorage.setItem('jwt_token', data.token);
                             localStorage.setItem('user_role', data.role);
                             localStorage.setItem('user_name', data.name);
                             
-                            // Atualiza interface
                             this.token = data.token;
                             this.role = data.role;
                             this.name = data.name;
                             
                             this.showMsg('Login realizado com sucesso!', 'success');
                             
-                            // Passa o token diretamente para a função para burlar qualquer atraso do Proxy do Alpine
-                            this.loadData(data.token);
+                            // Passamos o dado EXPLICITAMENTE para driblar atrasos de milissegundos do framework JS
+                            this.loadData(data.token, data.role);
                         } else {
                             this.showMsg(data.error || data.msg || 'Credenciais inválidas', 'error');
                         }
@@ -255,16 +252,22 @@
                     this.showMsg('Sessão encerrada.', 'success');
                 },
 
-                // Todas as funções agora buscam o token garantido diretamente (via argumento ou localStorage cru)
-                async loadData(explicitToken = null) {
-                    const activeToken = explicitToken || localStorage.getItem('jwt_token');
-                    if (!activeToken) return;
+                // Passar as variáveis explicitamente garante que o Fetch será montado de forma impecável
+                async loadData(explicitToken = null, explicitRole = null) {
+                    const t = this.cleanAuthToken(explicitToken || localStorage.getItem('jwt_token'));
+                    const r = explicitRole || this.role || localStorage.getItem('user_role');
+                    
+                    if (!t) return;
                     
                     try {
-                        const endpoint = this.role === 'master' ? '/api/labs' : '/api/os';
+                        const endpoint = r === 'master' ? '/api/labs' : '/api/os';
                         
                         const res = await fetch(endpoint, {
-                            headers: { 'Authorization': 'Bearer ' + activeToken }
+                            method: 'GET',
+                            headers: { 
+                                'Authorization': `Bearer ${t}`,
+                                'Accept': 'application/json'
+                            }
                         });
                         
                         if (res.status === 401 || res.status === 422) {
@@ -272,24 +275,24 @@
                             return;
                         }
 
-                        if (res.ok && this.role !== 'master') {
+                        if (res.ok && r !== 'master') {
                             this.orders = await res.json();
                         }
                     } catch(e) {
-                        console.error('Erro ao carregar dados');
+                        console.error('Erro ao carregar dados:', e);
                     }
                 },
 
                 async createLab() {
-                    const activeToken = localStorage.getItem('jwt_token');
-                    if (!activeToken) return;
+                    const t = this.cleanAuthToken(localStorage.getItem('jwt_token'));
+                    if (!t) return;
 
                     try {
                         const res = await fetch('/api/labs', {
                             method: 'POST',
                             headers: { 
                                 'Content-Type': 'application/json',
-                                'Authorization': 'Bearer ' + activeToken 
+                                'Authorization': `Bearer ${t}` 
                             },
                             body: JSON.stringify(this.newLab)
                         });
@@ -312,15 +315,15 @@
                 },
 
                 async createDentist() {
-                    const activeToken = localStorage.getItem('jwt_token');
-                    if (!activeToken) return;
+                    const t = this.cleanAuthToken(localStorage.getItem('jwt_token'));
+                    if (!t) return;
 
                     try {
                         const res = await fetch('/api/dentists', {
                             method: 'POST',
                             headers: { 
                                 'Content-Type': 'application/json',
-                                'Authorization': 'Bearer ' + activeToken 
+                                'Authorization': `Bearer ${t}` 
                             },
                             body: JSON.stringify(this.newDentist)
                         });
@@ -343,15 +346,15 @@
                 },
 
                 async createOS() {
-                    const activeToken = localStorage.getItem('jwt_token');
-                    if (!activeToken) return;
+                    const t = this.cleanAuthToken(localStorage.getItem('jwt_token'));
+                    if (!t) return;
 
                     try {
                         const res = await fetch('/api/os', {
                             method: 'POST',
                             headers: { 
                                 'Content-Type': 'application/json',
-                                'Authorization': 'Bearer ' + activeToken 
+                                'Authorization': `Bearer ${t}` 
                             },
                             body: JSON.stringify(this.newOS)
                         });
@@ -377,13 +380,13 @@
                 async cancelOS(id) {
                     if(!confirm('Deseja realmente cancelar esta OS?')) return;
                     
-                    const activeToken = localStorage.getItem('jwt_token');
-                    if (!activeToken) return;
+                    const t = this.cleanAuthToken(localStorage.getItem('jwt_token'));
+                    if (!t) return;
 
                     try {
                         const res = await fetch(`/api/os/${id}/cancel`, {
                             method: 'PUT',
-                            headers: { 'Authorization': 'Bearer ' + activeToken }
+                            headers: { 'Authorization': `Bearer ${t}` }
                         });
                         
                         if (res.status === 401 || res.status === 422) {
