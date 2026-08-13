@@ -14,13 +14,18 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# CORREÇÃO CRÍTICA SUPABASE: Converte postgres:// para postgresql:// caso necessário
+# Correção URL Supabase
 db_url = os.getenv('DATABASE_URL', 'sqlite:///alg_lab.db')
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'dev-secret-key-123')
+
+# SOLUÇÃO DEFINITIVA: Aceitar o Token tanto por Cabeçalho quanto por URL
+app.config['JWT_TOKEN_LOCATION'] = ['headers', 'query_string']
+app.config['JWT_QUERY_STRING_NAME'] = 'token'
+
 db.init_app(app)
 jwt = JWTManager(app)
 
@@ -66,7 +71,6 @@ def manage_labs():
         return jsonify({'error': 'Acesso negado'}), 403
 
     if request.method == 'POST':
-        # Removido o silent=True para evitar parse incorreto mascarado
         data = request.get_json() or request.form
         name = data.get('name')
         admin_name = data.get('admin_name')
